@@ -2,9 +2,9 @@ use crate::*;
 
 #[derive(Lombok, Default)]
 pub struct Server {
-    cfg: OnceCellServerConfig,
+    cfg: RefCellServerConfig,
     route_func: ArcDashMapRouteFuncBox,
-    request_middleware: OnceCellVecBoxFunc,
-    response_middleware: OnceCellVecBoxFunc,
-    tmp: OnceCellTmp,
+    request_middleware: RefCellVecBoxFunc,
+    response_middleware: RefCellVecBoxFunc,
+    tmp: RefCellTmp,
 }

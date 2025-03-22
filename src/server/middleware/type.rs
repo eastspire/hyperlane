@@ -1,3 +1,3 @@
 use crate::*;
 
-pub type OnceCellVecBoxFunc = OnceCell<VecBoxFunc>;
+pub type RefCellVecBoxFunc = RefCell<VecBoxFunc>;

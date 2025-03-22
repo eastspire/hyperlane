@@ -8,39 +8,33 @@ impl Server {
 
     #[inline]
     pub fn host(&mut self, host: &'static str) -> &mut Self {
-        if let Some(cfg) = self.get_mut_cfg().get_mut() {
-            cfg.set_host(host);
-        }
+        self.get_mut_cfg().get_mut().set_host(host);
         self
     }
 
     #[inline]
     pub fn port(&mut self, port: usize) -> &mut Self {
-        if let Some(cfg) = self.get_mut_cfg().get_mut() {
-            cfg.set_port(port);
-        }
+        self.get_mut_cfg().get_mut().set_port(port);
         self
     }
 
     #[inline]
     pub fn log_dir(&mut self, log_dir: &'static str) -> &mut Self {
-        if let Some(cfg) = self.get_mut_cfg().get_mut() {
-            cfg.set_log_dir(log_dir);
-            if let Some(tmp) = self.get_mut_tmp().get_mut() {
-                tmp.get_mut_log().set_path(log_dir.into());
-            }
-        }
+        self.get_mut_cfg().get_mut().set_log_dir(log_dir);
+        self.get_mut_tmp()
+            .get_mut()
+            .get_mut_log()
+            .set_path(log_dir.into());
         self
     }
 
     #[inline]
     pub fn log_size(&mut self, log_size: usize) -> &mut Self {
-        if let Some(cfg) = self.get_mut_cfg().get_mut() {
-            cfg.set_log_size(log_size);
-            if let Some(tmp) = self.get_mut_tmp().get_mut() {
-                tmp.get_mut_log().set_file_size(log_size);
-            }
-        }
+        self.get_mut_cfg().get_mut().set_log_size(log_size);
+        self.get_mut_tmp()
+            .get_mut()
+            .get_mut_log()
+            .set_file_size(log_size);
         self
     }
 
@@ -51,25 +45,21 @@ impl Server {
         } else {
             buffer_size
         };
-        if let Some(cfg) = self.get_mut_cfg().get_mut() {
-            cfg.set_websocket_buffer_size(buffer_size);
-        }
+        self.get_mut_cfg()
+            .get_mut()
+            .set_websocket_buffer_size(buffer_size);
         self
     }
 
     #[inline]
     pub fn inner_print(&mut self, print: bool) -> &mut Self {
-        if let Some(cfg) = self.get_mut_cfg().get_mut() {
-            cfg.set_inner_print(print);
-        }
+        self.get_mut_cfg().get_mut().set_inner_print(print);
         self
     }
 
     #[inline]
     pub fn inner_log(&mut self, print: bool) -> &mut Self {
-        if let Some(cfg) = self.get_mut_cfg().get_mut() {
-            cfg.set_inner_log(print);
-        }
+        self.get_mut_cfg().get_mut().set_inner_log(print);
         self
     }
 
@@ -99,17 +89,18 @@ impl Server {
 
     #[inline]
     pub fn log_interval_millis(&mut self, interval_millis: usize) -> &mut Self {
-        if let Some(cfg) = self.get_mut_cfg().get_mut() {
-            cfg.set_interval_millis(interval_millis);
-            if let Some(tmp) = self.get_mut_tmp().get_mut() {
-                tmp.get_mut_log().set_interval_millis(interval_millis);
-            }
-        }
+        self.get_mut_cfg()
+            .get_mut()
+            .set_interval_millis(interval_millis);
+        self.get_mut_tmp()
+            .get_mut()
+            .get_mut_log()
+            .set_interval_millis(interval_millis);
         self
     }
 
     #[inline]
-    pub fn route<F, Fut>(&mut self, route: &'static str, mut func: F) -> &mut Self
+    pub fn route<F, Fut>(&mut self, route: &'static str, func: F) -> &mut Self
     where
         F: FuncWithoutPin<Fut>,
         Fut: Future<Output = ()> + Send + 'static,
@@ -117,36 +108,32 @@ impl Server {
         let mut_route_func: &ArcDashMapRouteFuncBox = self.get_route_func();
         mut_route_func.insert(
             route,
-            Box::new(move |controller_data: &mut ControllerData| Box::pin(func(controller_data))),
+            Box::new(move |controller_data: ControllerData| Box::pin(func(controller_data))),
         );
         self
     }
 
     #[inline]
-    pub fn request_middleware<F, Fut>(&mut self, mut func: F) -> &mut Self
+    pub fn request_middleware<F, Fut>(&mut self, func: F) -> &mut Self
     where
         F: FuncWithoutPin<Fut>,
         Fut: Future<Output = ()> + Send + 'static,
     {
-        if let Some(mut_async_middleware) = self.get_mut_request_middleware().get_mut() {
-            mut_async_middleware.push(Box::new(move |controller_data: &mut ControllerData| {
-                Box::pin(func(controller_data))
-            }));
-        }
+        self.get_mut_request_middleware().get_mut().push(Box::new(
+            move |controller_data: ControllerData| Box::pin(func(controller_data)),
+        ));
         self
     }
 
     #[inline]
-    pub fn response_middleware<F, Fut>(&mut self, mut func: F) -> &mut Self
+    pub fn response_middleware<F, Fut>(&mut self, func: F) -> &mut Self
     where
         F: FuncWithoutPin<Fut>,
         Fut: Future<Output = ()> + Send + 'static,
     {
-        if let Some(mut_async_middleware) = self.get_mut_response_middleware().get_mut() {
-            mut_async_middleware.push(Box::new(move |controller_data: &mut ControllerData| {
-                Box::pin(func(controller_data))
-            }));
-        }
+        self.get_mut_response_middleware().get_mut().push(Box::new(
+            move |controller_data: ControllerData| Box::pin(func(controller_data)),
+        ));
         self
     }
 
@@ -167,33 +154,29 @@ impl Server {
     pub async fn listen(&mut self) -> &mut Self {
         {
             self.init();
-            let cfg: ServerConfig = self.get_mut_cfg().take().unwrap_or_default();
+            let cfg: ServerConfig = self.get_mut_cfg().take();
             let host: &str = *cfg.get_host();
             let port: usize = *cfg.get_port();
             let websocket_buffer_size: usize = *cfg.get_websocket_buffer_size();
             let addr: String = format!("{}{}{}", host, COLON_SPACE_SYMBOL, port);
-            print_success!(-2);
             let tcp_listener: TcpListener = TcpListener::bind(&addr)
                 .await
                 .map_err(|err| ServerError::TcpBindError(err.to_string()))
                 .unwrap();
-            print_success!(-1);
             while let Ok((stream, _socket_addr)) = tcp_listener.accept().await {
-                let tmp: Tmp = self.get_mut_tmp().take().unwrap_or_default();
+                let tmp: Tmp = self.get_mut_tmp().borrow().clone();
                 let stream_arc: ArcRwLockStream = ArcRwLockStream::from_stream(stream);
-                let mut request_middleware_opt: OptionVecBoxFunc =
+                let mut request_middleware_opt: VecBoxFunc =
                     self.get_mut_request_middleware().take();
-                let mut response_middleware_opt: OptionVecBoxFunc =
+                let mut response_middleware_opt: VecBoxFunc =
                     self.get_mut_response_middleware().take();
                 let route_func: ArcDashMapRouteFuncBox = self.get_route_func().clone();
-                print_success!(0);
                 let handle_request = move || async move {
                     let log: Log = tmp.get_log().clone();
                     let mut enable_websocket_opt: Option<bool> = None;
                     let mut websocket_handshake_finish: bool = false;
                     let mut history_request: Request = Request::default();
                     loop {
-                        print_success!(1);
                         let mut inner_controller_data: InnerControllerData =
                             InnerControllerData::default();
                         let request_obj_result: Result<Request, ServerError> =
@@ -205,9 +188,7 @@ impl Server {
                             .await
                             .map_err(|err| ServerError::InvalidHttpRequest(err));
                         let init_enable_websocket_opt: bool = enable_websocket_opt.is_some();
-                        print_success!(2);
                         if request_obj_result.is_err() && !init_enable_websocket_opt {
-                            print_error!(3);
                             let _ = inner_controller_data
                                 .get_mut_response()
                                 .close(&stream_arc)
@@ -226,7 +207,7 @@ impl Server {
                             .set_stream(Some(stream_arc.clone()))
                             .set_request(request_obj)
                             .set_log(log.clone());
-                        let mut controller_data: ControllerData =
+                        let controller_data: ControllerData =
                             ControllerData::from_controller_data(inner_controller_data);
                         if !init_enable_websocket_opt {
                             enable_websocket_opt =
@@ -238,26 +219,20 @@ impl Server {
                                 .handle_websocket(&mut websocket_handshake_finish)
                                 .await;
                             if handle_res.is_err() {
-                                print_error!(4);
                                 let _ = controller_data.close().await;
                                 return;
                             }
                         }
-                        if let Some(ref mut request_middleware_opt) = request_middleware_opt {
-                            for request_middleware in request_middleware_opt.iter_mut() {
-                                request_middleware(&mut controller_data).await;
-                            }
+                        for request_middleware in request_middleware_opt.iter_mut() {
+                            request_middleware(controller_data.clone()).await;
                         }
                         if let Some(ref mut async_func) = route_func.get_mut(route.as_str()) {
-                            async_func(&mut controller_data).await;
+                            async_func(controller_data.clone()).await;
                         }
-                        if let Some(ref mut response_middleware_opt) = response_middleware_opt {
-                            for response_middleware in response_middleware_opt.iter_mut() {
-                                response_middleware(&mut controller_data).await;
-                            }
+                        for response_middleware in response_middleware_opt.iter_mut() {
+                            response_middleware(controller_data.clone()).await;
                         }
                         if controller_data.judge_unenable_keep_alive().await && !enable_websocket {
-                            print_error!(5);
                             let _ = controller_data.close().await;
                             return;
                         }
@@ -271,14 +246,14 @@ impl Server {
 
     #[inline]
     fn init_log(&mut self) {
-        let tmp: Tmp = self.get_mut_tmp().take().unwrap_or_default();
+        let tmp: Tmp = self.get_mut_tmp().borrow().clone();
         log_run(tmp.get_log());
     }
 
     #[inline]
     fn init_panic_hook(&mut self) {
-        let tmp: Tmp = self.get_mut_tmp().take().unwrap_or_default();
-        let cfg: ServerConfig = self.get_mut_cfg().take().unwrap_or_default();
+        let tmp: Tmp = self.get_mut_tmp().borrow().clone();
+        let cfg: ServerConfig = self.get_mut_cfg().borrow().clone();
         let inner_print: bool = *cfg.get_inner_print();
         let inner_log: bool = *cfg.get_inner_log();
         set_hook(Box::new(move |err| {

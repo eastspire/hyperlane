@@ -1,6 +1,6 @@
 use crate::*;
 
-pub type OnceCellServerConfig = OnceCell<ServerConfig<'static>>;
+pub type RefCellServerConfig = RefCell<ServerConfig<'static>>;
 
 #[derive(Clone, Debug, Lombok)]
 pub struct ServerConfig<'a> {
