@@ -190,7 +190,9 @@ impl Server {
                         let init_enable_websocket_opt: bool = enable_websocket_opt.is_some();
                         if request_obj_result.is_err() && !init_enable_websocket_opt {
                             let _ = inner_controller_data
-                                .get_mut_response()
+                                .get_response()
+                                .write()
+                                .await
                                 .close(&stream_arc)
                                 .await;
                             return;
@@ -204,9 +206,9 @@ impl Server {
                         }
                         let route: String = request_obj.get_path().clone();
                         inner_controller_data
-                            .set_stream(Some(stream_arc.clone()))
-                            .set_request(request_obj)
-                            .set_log(log.clone());
+                            .set_stream_opt(Some(stream_arc.clone()))
+                            .set_request(arc_rwlock(request_obj))
+                            .set_log(arc_rwlock(log.clone()));
                         let controller_data: ControllerData =
                             ControllerData::from_controller_data(inner_controller_data);
                         if !init_enable_websocket_opt {

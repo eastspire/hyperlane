@@ -9,11 +9,15 @@ pub type OptionInnerControllerData = Option<InnerControllerData>;
 
 #[derive(Clone, Debug, Lombok, Default)]
 pub struct InnerControllerData {
-    stream: OptionArcRwLockStream,
-    request: Request,
-    response: Response,
-    log: Log,
+    #[get_mut(skip)]
+    stream_opt: OptionArcRwLockStream,
+    #[get_mut(skip)]
+    request: ArcRwLock<Request>,
+    #[get_mut(skip)]
+    response: ArcRwLock<Response>,
+    #[get_mut(skip)]
+    log: ArcRwLock<Log>,
 }
 
 #[derive(Clone, Debug)]
-pub struct ControllerData(pub(super) ArcRwLock<InnerControllerData>);
+pub struct ControllerData(pub(super) Arc<InnerControllerData>);
