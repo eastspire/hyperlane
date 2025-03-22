@@ -1,6 +1,6 @@
 use crate::*;
 
-pub type RefCellTmp = RefCell<Tmp>;
+pub type RwLockTmp = RwLock<Tmp>;
 
 #[derive(Clone, Lombok)]
 pub struct Tmp {

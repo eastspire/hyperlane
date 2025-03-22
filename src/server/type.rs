@@ -2,9 +2,9 @@ use crate::*;
 
 #[derive(Lombok, Default)]
 pub struct Server {
-    cfg: RefCellServerConfig,
+    cfg: RwLockServerConfig,
     route_func: ArcDashMapRouteFuncBox,
-    request_middleware: RefCellVecBoxFunc,
-    response_middleware: RefCellVecBoxFunc,
-    tmp: RefCellTmp,
+    request_middleware: ArcRwLockVecBoxFunc,
+    response_middleware: ArcRwLockVecBoxFunc,
+    tmp: RwLockTmp,
 }

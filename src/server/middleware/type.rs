@@ -1,3 +1,3 @@
 use crate::*;
 
-pub type RefCellVecBoxFunc = RefCell<VecBoxFunc>;
+pub type ArcRwLockVecBoxFunc = ArcRwLock<VecBoxFunc>;

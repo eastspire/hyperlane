@@ -45,16 +45,16 @@ async fn test_server_basic_usage() {
 
     async fn run_server() {
         let mut server: Server = Server::new();
-        server.host("0.0.0.0");
-        server.port(60000);
-        server.log_dir("./logs");
-        server.enable_inner_log();
-        server.enable_inner_print();
-        server.log_size(100_024_000);
-        server.log_interval_millis(1000);
-        server.websocket_buffer_size(4096);
-        server.request_middleware(request_middleware);
-        server.response_middleware(response_middleware);
+        server.host("0.0.0.0").await;
+        server.port(40000).await;
+        server.log_dir("./logs").await;
+        server.enable_inner_log().await;
+        server.enable_inner_print().await;
+        server.log_size(100_024_000).await;
+        server.log_interval_millis(1000).await;
+        server.websocket_buffer_size(4096).await;
+        server.request_middleware(request_middleware).await;
+        server.response_middleware(response_middleware).await;
         server.route("/", root_route);
         server.route("/websocket", websocket_route);
         let test_string: String = "Hello hyperlane".to_owned();
@@ -69,6 +69,7 @@ async fn test_server_basic_usage() {
         server.listen().await;
     }
 
+    run_server().await;
     recoverable_spawn::r#async::recoverable_spawn(run_server);
     std::thread::sleep(std::time::Duration::from_secs(10));
 }
