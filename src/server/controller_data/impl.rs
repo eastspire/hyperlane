@@ -3,60 +3,61 @@ use crate::*;
 impl ControllerData {
     #[inline]
     pub(crate) fn from_controller_data(controller_data: InnerControllerData) -> Self {
-        Self(arc_rwlock(controller_data))
+        Self(OnceCell::from(controller_data))
     }
 
     #[inline]
-    pub async fn get(&self) -> InnerControllerData {
-        let controller_data: InnerControllerData = self.get_read_lock().await.clone();
+    pub fn get(&self) -> &InnerControllerData {
+        let controller_data: &InnerControllerData =
+            self.0.get_or_init(|| InnerControllerData::default());
         controller_data
     }
 
     #[inline]
-    pub async fn get_read_lock(&self) -> RwLockReadControllerData {
-        let controller_data: RwLockReadControllerData = self.0.read().await;
+    pub async fn get_mut(&mut self) -> OptionRefMutInnerControllerData {
+        let controller_data: OptionRefMutInnerControllerData = self.0.get_mut();
         controller_data
     }
 
     #[inline]
-    pub async fn get_write_lock(&self) -> RwLockWriteControllerData {
-        let controller_data: RwLockWriteControllerData = self.0.write().await;
+    pub async fn take(&mut self) -> OptionInnerControllerData {
+        let controller_data: OptionInnerControllerData = self.0.take();
         controller_data
     }
 
     #[inline]
     pub async fn get_stream(&self) -> OptionArcRwLockStream {
-        let controller_data: RwLockReadControllerData = self.get_read_lock().await;
+        let controller_data: &InnerControllerData = self.get();
         controller_data.get_stream().clone()
     }
 
     #[inline]
     pub async fn get_request(&self) -> Request {
-        let controller_data: RwLockReadControllerData = self.get_read_lock().await;
+        let controller_data: &InnerControllerData = self.get();
         controller_data.get_request().clone()
     }
 
     #[inline]
     pub async fn get_response(&self) -> Response {
-        let controller_data: RwLockReadControllerData = self.get_read_lock().await;
+        let controller_data: &InnerControllerData = self.get();
         controller_data.get_response().clone()
     }
 
     #[inline]
     pub async fn get_request_string(&self) -> String {
-        let controller_data: RwLockReadControllerData = self.get_read_lock().await;
+        let controller_data: &InnerControllerData = self.get();
         controller_data.get_request().get_string()
     }
 
     #[inline]
     pub async fn get_response_string(&self) -> String {
-        let controller_data: RwLockReadControllerData = self.get_read_lock().await;
+        let controller_data: &InnerControllerData = self.get();
         controller_data.get_response().get_string()
     }
 
     #[inline]
     pub async fn get_log(&self) -> Log {
-        let controller_data: RwLockReadControllerData = self.get_read_lock().await;
+        let controller_data: &InnerControllerData = self.get();
         controller_data.get_log().clone()
     }
 
@@ -119,40 +120,47 @@ impl ControllerData {
     }
 
     #[inline]
-    fn inner_is_websocket(&self, controller_data: &RwLockWriteControllerData) -> bool {
+    fn inner_is_websocket(controller_data: &OptionRefMutInnerControllerData) -> bool {
         return controller_data
-            .get_request()
-            .get_upgrade_type()
-            .is_websocket();
+            .as_ref()
+            .map(|controller_data| {
+                controller_data
+                    .get_request()
+                    .get_upgrade_type()
+                    .is_websocket()
+            })
+            .unwrap_or_default();
     }
 
     #[inline]
     async fn inner_send_response<T: Into<ResponseBody>>(
-        &self,
+        &mut self,
         status_code: usize,
         response_body: T,
         handle_websocket: bool,
     ) -> ResponseResult {
         if let Some(stream_lock) = self.get_stream().await {
-            let mut controller_data: RwLockWriteControllerData = self.get_write_lock().await;
-            if !handle_websocket && self.inner_is_websocket(&controller_data) {
+            let controller_data: OptionRefMutInnerControllerData = self.get_mut().await;
+            if !handle_websocket && Self::inner_is_websocket(&controller_data) {
                 return Err(ResponseError::NotSupportUseThisMethod);
             }
-            let response: &mut Response = controller_data.get_mut_response();
-            let body: ResponseBody = response_body.into();
-            let response_res: ResponseResult = response
-                .set_body(body)
-                .set_status_code(status_code)
-                .send(&stream_lock)
-                .await;
-            return response_res;
+            if let Some(controller_data) = controller_data {
+                let response: &mut Response = controller_data.get_mut_response();
+                let body: ResponseBody = response_body.into();
+                let response_res: ResponseResult = response
+                    .set_body(body)
+                    .set_status_code(status_code)
+                    .send(&stream_lock)
+                    .await;
+                return response_res;
+            }
         }
         Err(ResponseError::NotFoundStream)
     }
 
     #[inline]
     pub async fn send_response<T: Into<ResponseBody>>(
-        &self,
+        &mut self,
         status_code: usize,
         response_body: T,
     ) -> ResponseResult {
@@ -161,7 +169,7 @@ impl ControllerData {
     }
 
     #[inline]
-    pub async fn send(&self) -> ResponseResult {
+    pub async fn send(&mut self) -> ResponseResult {
         let status_code: ResponseStatusCode = self.get_response_status_code().await;
         let response_body: ResponseBody = self.get_response_body().await;
         self.send_response(status_code, response_body).await
@@ -169,30 +177,32 @@ impl ControllerData {
 
     #[inline]
     pub async fn send_response_once<T: Into<ResponseBody>>(
-        &self,
+        &mut self,
         status_code: usize,
         response_body: T,
     ) -> ResponseResult {
         if let Some(stream_lock) = self.get_stream().await {
-            let mut controller_data: RwLockWriteControllerData = self.get_write_lock().await;
-            if self.inner_is_websocket(&controller_data) {
+            let controller_data: OptionRefMutInnerControllerData = self.get_mut().await;
+            if Self::inner_is_websocket(&controller_data) {
                 return Err(ResponseError::NotSupportUseThisMethod);
             }
-            let response: &mut Response = controller_data.get_mut_response();
-            let body: ResponseBody = response_body.into();
-            let response_res: ResponseResult = response
-                .set_body(body)
-                .set_status_code(status_code)
-                .send(&stream_lock)
-                .await;
-            let _ = response.close(&stream_lock).await;
-            return response_res;
+            if let Some(controller_data) = controller_data {
+                let response: &mut Response = controller_data.get_mut_response();
+                let body: ResponseBody = response_body.into();
+                let response_res: ResponseResult = response
+                    .set_body(body)
+                    .set_status_code(status_code)
+                    .send(&stream_lock)
+                    .await;
+                let _ = response.close(&stream_lock).await;
+                return response_res;
+            }
         }
         Err(ResponseError::NotFoundStream)
     }
 
     #[inline]
-    pub async fn send_once(&self) -> ResponseResult {
+    pub async fn send_once(&mut self) -> ResponseResult {
         let status_code: ResponseStatusCode = self.get_response_status_code().await;
         let response_body: ResponseBody = self.get_response_body().await;
         self.send_response_once(status_code, response_body).await
@@ -200,43 +210,49 @@ impl ControllerData {
 
     #[inline]
     pub async fn send_response_body<T: Into<ResponseBody>>(
-        &self,
+        &mut self,
         response_body: T,
     ) -> ResponseResult {
         if let Some(stream_lock) = self.get_stream().await {
             let is_websocket: bool = self.get_request_upgrade_type().await.is_websocket();
-            let mut response: RwLockWriteControllerData = self.get_write_lock().await;
-            let response_res: ResponseResult = response
-                .get_mut_response()
-                .set_body(response_body)
-                .send_body(&stream_lock, is_websocket)
-                .await;
-            return response_res;
+            let controller_data: OptionRefMutInnerControllerData = self.get_mut().await;
+            if let Some(controller_data) = controller_data {
+                let response_res: ResponseResult = controller_data
+                    .get_mut_response()
+                    .set_body(response_body)
+                    .send_body(&stream_lock, is_websocket)
+                    .await;
+                return response_res;
+            }
         }
         Err(ResponseError::NotFoundStream)
     }
 
     #[inline]
-    pub async fn send_body(&self) -> ResponseResult {
+    pub async fn send_body(&mut self) -> ResponseResult {
         let body: ResponseBody = self.get_response_body().await;
         self.send_response_body(body).await
     }
 
     #[inline]
-    pub async fn close(&self) -> ResponseResult {
+    pub async fn close(&mut self) -> ResponseResult {
         if let Some(stream_lock) = self.get_stream().await {
-            let mut controller_data: RwLockWriteControllerData = self.get_write_lock().await;
-            let response: &mut Response = controller_data.get_mut_response();
-            return response.close(&stream_lock).await;
+            let controller_data: OptionRefMutInnerControllerData = self.get_mut().await;
+            if let Some(controller_data) = controller_data {
+                let response: &mut Response = controller_data.get_mut_response();
+                return response.close(&stream_lock).await;
+            }
         }
         Err(ResponseError::NotFoundStream)
     }
 
     #[inline]
-    pub async fn flush(&self) -> ResponseResult {
+    pub async fn flush(&mut self) -> ResponseResult {
         if let Some(stream_lock) = self.get_stream().await {
-            let mut controller_data: RwLockWriteControllerData = self.get_write_lock().await;
-            return controller_data.get_mut_response().flush(&stream_lock).await;
+            let controller_data: OptionRefMutInnerControllerData = self.get_mut().await;
+            if let Some(controller_data) = controller_data {
+                return controller_data.get_mut_response().flush(&stream_lock).await;
+            }
         }
         Err(ResponseError::NotFoundStream)
     }
@@ -247,7 +263,7 @@ impl ControllerData {
         T: LogDataTrait,
         L: LogFuncTrait,
     {
-        let controller_data: RwLockReadControllerData = self.get_read_lock().await;
+        let controller_data: &InnerControllerData = self.get();
         let log: &Log = controller_data.get_log();
         log.info(data, func);
         self
@@ -259,7 +275,7 @@ impl ControllerData {
         T: LogDataTrait,
         L: LogFuncTrait,
     {
-        let controller_data: RwLockReadControllerData = self.get_read_lock().await;
+        let controller_data: &InnerControllerData = self.get();
         let log: &Log = controller_data.get_log();
         log.debug(data, func);
         self
@@ -271,7 +287,7 @@ impl ControllerData {
         T: LogDataTrait,
         L: LogFuncTrait,
     {
-        let controller_data: RwLockReadControllerData = self.get_read_lock().await;
+        let controller_data: &InnerControllerData = self.get();
         let log: &Log = controller_data.get_log();
         log.error(data, func);
         self
@@ -279,28 +295,28 @@ impl ControllerData {
 
     #[inline]
     pub async fn get_request_method(&self) -> RequestMethod {
-        let controller_data: RwLockReadControllerData = self.get_read_lock().await;
+        let controller_data: &InnerControllerData = self.get();
         let request: &Request = controller_data.get_request();
         request.get_method().clone()
     }
 
     #[inline]
     pub async fn get_request_host(&self) -> RequestHost {
-        let controller_data: RwLockReadControllerData = self.get_read_lock().await;
+        let controller_data: &InnerControllerData = self.get();
         let request: &Request = controller_data.get_request();
         request.get_host().clone()
     }
 
     #[inline]
     pub async fn get_request_path(&self) -> RequestPath {
-        let controller_data: RwLockReadControllerData = self.get_read_lock().await;
+        let controller_data: &InnerControllerData = self.get();
         let request: &Request = controller_data.get_request();
         request.get_path().clone()
     }
 
     #[inline]
     pub async fn get_request_querys(&self) -> RequestQuerys {
-        let controller_data: RwLockReadControllerData = self.get_read_lock().await;
+        let controller_data: &InnerControllerData = self.get();
         let request: &Request = controller_data.get_request();
         request.get_querys().clone()
     }
@@ -310,7 +326,7 @@ impl ControllerData {
         &self,
         key: T,
     ) -> Option<RequestQuerysValue> {
-        let controller_data: RwLockReadControllerData = self.get_read_lock().await;
+        let controller_data: &InnerControllerData = self.get();
         let request: &Request = controller_data.get_request();
         request
             .get_querys()
@@ -320,14 +336,14 @@ impl ControllerData {
 
     #[inline]
     pub async fn get_request_body(&self) -> RequestBody {
-        let controller_data: RwLockReadControllerData = self.get_read_lock().await;
+        let controller_data: &InnerControllerData = self.get();
         let request: &Request = controller_data.get_request();
         request.get_body().clone()
     }
 
     #[inline]
     pub async fn get_request_body_string(&self) -> String {
-        let controller_data: RwLockReadControllerData = self.get_read_lock().await;
+        let controller_data: &InnerControllerData = self.get();
         let request: &Request = controller_data.get_request();
         String::from_utf8_lossy(request.get_body()).to_string()
     }
@@ -337,120 +353,138 @@ impl ControllerData {
     where
         K: Into<RequestHeadersKey>,
     {
-        let controller_data: RwLockReadControllerData = self.get_read_lock().await;
+        let controller_data: &InnerControllerData = self.get();
         let request: &Request = controller_data.get_request();
         request.get_header(key)
     }
 
     #[inline]
     pub async fn get_request_headers(&self) -> RequestHeaders {
-        let controller_data: RwLockReadControllerData = self.get_read_lock().await;
+        let controller_data: &InnerControllerData = self.get();
         let request: &Request = controller_data.get_request();
         request.get_headers().clone()
     }
 
     #[inline]
     pub async fn get_request_upgrade_type(&self) -> UpgradeType {
-        let controller_data: RwLockReadControllerData = self.get_read_lock().await;
+        let controller_data: &InnerControllerData = self.get();
         let request: &Request = controller_data.get_request();
         request.get_upgrade_type().clone()
     }
 
     #[inline]
-    pub async fn set_request(&self, request_data: Request) -> &Self {
-        let mut controller_data: RwLockWriteControllerData = self.get_write_lock().await;
-        let request: &mut Request = controller_data.get_mut_request();
-        *request = request_data;
+    pub async fn set_request(&mut self, request_data: Request) -> &mut Self {
+        let controller_data: OptionRefMutInnerControllerData = self.get_mut().await;
+        if let Some(controller_data) = controller_data {
+            let request: &mut Request = controller_data.get_mut_request();
+            *request = request_data;
+        }
         self
     }
 
     #[inline]
-    pub async fn set_request_method<T>(&self, method: T) -> &Self
+    pub async fn set_request_method<T>(&mut self, method: T) -> &mut Self
     where
         T: Into<RequestMethod>,
     {
-        let mut controller_data: RwLockWriteControllerData = self.get_write_lock().await;
-        let request: &mut Request = controller_data.get_mut_request();
-        request.set_method(method);
+        let controller_data: OptionRefMutInnerControllerData = self.get_mut().await;
+        if let Some(controller_data) = controller_data {
+            let request: &mut Request = controller_data.get_mut_request();
+            request.set_method(method);
+        }
         self
     }
 
     #[inline]
-    pub async fn set_request_host<T>(&self, host: T) -> &Self
+    pub async fn set_request_host<T>(&mut self, host: T) -> &mut Self
     where
         T: Into<RequestHost>,
     {
-        let mut controller_data: RwLockWriteControllerData = self.get_write_lock().await;
-        let request: &mut Request = controller_data.get_mut_request();
-        request.set_host(host);
+        let controller_data: OptionRefMutInnerControllerData = self.get_mut().await;
+        if let Some(controller_data) = controller_data {
+            let request: &mut Request = controller_data.get_mut_request();
+            request.set_host(host);
+        }
         self
     }
 
     #[inline]
-    pub async fn set_request_path<T>(&self, path: T) -> &Self
+    pub async fn set_request_path<T>(&mut self, path: T) -> &mut Self
     where
         T: Into<RequestPath>,
     {
-        let mut controller_data: RwLockWriteControllerData = self.get_write_lock().await;
-        let request: &mut Request = controller_data.get_mut_request();
-        request.set_path(path);
+        let controller_data: OptionRefMutInnerControllerData = self.get_mut().await;
+        if let Some(controller_data) = controller_data {
+            let request: &mut Request = controller_data.get_mut_request();
+            request.set_path(path);
+        }
         self
     }
 
     #[inline]
-    pub async fn set_request_query<K, V>(&self, key: K, value: V) -> &Self
+    pub async fn set_request_query<K, V>(&mut self, key: K, value: V) -> &mut Self
     where
         K: Into<RequestQuerysKey>,
         V: Into<RequestQuerysValue>,
     {
-        let mut controller_data: RwLockWriteControllerData = self.get_write_lock().await;
-        let request: &mut Request = controller_data.get_mut_request();
-        request.set_query(key, value);
+        let controller_data: OptionRefMutInnerControllerData = self.get_mut().await;
+        if let Some(controller_data) = controller_data {
+            let request: &mut Request = controller_data.get_mut_request();
+            request.set_query(key, value);
+        }
         self
     }
 
     #[inline]
-    pub async fn set_request_querys<T>(&self, querys: T) -> &Self
+    pub async fn set_request_querys<T>(&mut self, querys: T) -> &mut Self
     where
         T: Into<RequestQuerys>,
     {
-        let mut controller_data: RwLockWriteControllerData = self.get_write_lock().await;
-        let request: &mut Request = controller_data.get_mut_request();
-        request.set_querys(querys.into());
+        let controller_data: OptionRefMutInnerControllerData = self.get_mut().await;
+        if let Some(controller_data) = controller_data {
+            let request: &mut Request = controller_data.get_mut_request();
+            request.set_querys(querys.into());
+        }
         self
     }
 
     #[inline]
-    pub async fn set_request_header<K, V>(&self, key: K, value: V) -> &Self
+    pub async fn set_request_header<K, V>(&mut self, key: K, value: V) -> &mut Self
     where
         K: Into<String>,
         V: Into<String>,
     {
-        let mut controller_data: RwLockWriteControllerData = self.get_write_lock().await;
-        let request: &mut Request = controller_data.get_mut_request();
-        request.set_header(key, value);
+        let controller_data: OptionRefMutInnerControllerData = self.get_mut().await;
+        if let Some(controller_data) = controller_data {
+            let request: &mut Request = controller_data.get_mut_request();
+            request.set_header(key, value);
+        }
         self
     }
 
     #[inline]
-    pub async fn set_request_headers(&self, headers: RequestHeaders) -> &Self {
-        let mut controller_data: RwLockWriteControllerData = self.get_write_lock().await;
-        let request: &mut Request = controller_data.get_mut_request();
-        request.set_headers(headers);
+    pub async fn set_request_headers(&mut self, headers: RequestHeaders) -> &mut Self {
+        let controller_data: OptionRefMutInnerControllerData = self.get_mut().await;
+        if let Some(controller_data) = controller_data {
+            let request: &mut Request = controller_data.get_mut_request();
+            request.set_headers(headers);
+        }
         self
     }
 
     #[inline]
-    pub async fn set_request_body<T: Into<RequestBody>>(&self, body: T) -> &Self {
-        let mut controller_data: RwLockWriteControllerData = self.get_write_lock().await;
-        let request: &mut Request = controller_data.get_mut_request();
-        request.set_body(body);
+    pub async fn set_request_body<T: Into<RequestBody>>(&mut self, body: T) -> &mut Self {
+        let controller_data: OptionRefMutInnerControllerData = self.get_mut().await;
+        if let Some(controller_data) = controller_data {
+            let request: &mut Request = controller_data.get_mut_request();
+            request.set_body(body);
+        }
         self
     }
 
     #[inline]
     pub async fn get_response_headers(&self) -> ResponseHeaders {
-        let controller_data: RwLockReadControllerData = self.get_read_lock().await;
+        let controller_data: &InnerControllerData = self.get();
         let response: &Response = controller_data.get_response();
         response.get_headers().clone()
     }
@@ -460,89 +494,99 @@ impl ControllerData {
     where
         K: Into<ResponseHeadersKey>,
     {
-        let controller_data: RwLockReadControllerData = self.get_read_lock().await;
+        let controller_data: &InnerControllerData = self.get();
         let response: &Response = controller_data.get_response();
         response.get_header(key)
     }
 
     #[inline]
     pub async fn get_response_body(&self) -> ResponseBody {
-        let controller_data: RwLockReadControllerData = self.get_read_lock().await;
+        let controller_data: &InnerControllerData = self.get();
         let response: &Response = controller_data.get_response();
         response.get_body().clone()
     }
 
     #[inline]
     pub async fn get_response_body_string(&self) -> String {
-        let controller_data: RwLockReadControllerData = self.get_read_lock().await;
+        let controller_data: &InnerControllerData = self.get();
         let response: &Response = controller_data.get_response();
         String::from_utf8_lossy(response.get_body()).to_string()
     }
 
     #[inline]
     pub async fn get_response_reason_phrase(&self) -> ResponseReasonPhrase {
-        let controller_data: RwLockReadControllerData = self.get_read_lock().await;
+        let controller_data: &InnerControllerData = self.get();
         let response: &Response = controller_data.get_response();
         response.get_reason_phrase().clone()
     }
 
     #[inline]
     pub async fn get_response_status_code(&self) -> ResponseStatusCode {
-        let controller_data: RwLockReadControllerData = self.get_read_lock().await;
+        let controller_data: &InnerControllerData = self.get();
         let response: &Response = controller_data.get_response();
         response.get_status_code().clone()
     }
 
     #[inline]
-    pub async fn set_response_header<K, V>(&self, key: K, value: V) -> &Self
+    pub async fn set_response_header<K, V>(&mut self, key: K, value: V) -> &mut Self
     where
         K: Into<String>,
         V: Into<String>,
     {
-        let mut controller_data: RwLockWriteControllerData = self.get_write_lock().await;
-        let response: &mut Response = controller_data.get_mut_response();
-        response.set_header(key, value);
+        let controller_data: OptionRefMutInnerControllerData = self.get_mut().await;
+        if let Some(controller_data) = controller_data {
+            let response: &mut Response = controller_data.get_mut_response();
+            response.set_header(key, value);
+        }
         self
     }
 
     #[inline]
-    pub async fn set_response_headers(&self, headers: ResponseHeaders) -> &Self {
-        let mut controller_data: RwLockWriteControllerData = self.get_write_lock().await;
-        let response: &mut Response = controller_data.get_mut_response();
-        response.set_headers(headers);
+    pub async fn set_response_headers(&mut self, headers: ResponseHeaders) -> &mut Self {
+        let controller_data: OptionRefMutInnerControllerData = self.get_mut().await;
+        if let Some(controller_data) = controller_data {
+            let response: &mut Response = controller_data.get_mut_response();
+            response.set_headers(headers);
+        }
         self
     }
 
     #[inline]
-    pub async fn set_response_body<T: Into<ResponseBody>>(&self, body: T) -> &Self {
-        let mut controller_data: RwLockWriteControllerData = self.get_write_lock().await;
-        let response: &mut Response = controller_data.get_mut_response();
-        response.set_body(body);
+    pub async fn set_response_body<T: Into<ResponseBody>>(&mut self, body: T) -> &mut Self {
+        let controller_data: OptionRefMutInnerControllerData = self.get_mut().await;
+        if let Some(controller_data) = controller_data {
+            let response: &mut Response = controller_data.get_mut_response();
+            response.set_body(body);
+        }
         self
     }
 
     #[inline]
     pub async fn set_response_reason_phrase<T: Into<ResponseReasonPhrase>>(
-        &self,
+        &mut self,
         reason_phrase: T,
-    ) -> &Self {
-        let mut controller_data: RwLockWriteControllerData = self.get_write_lock().await;
-        let response: &mut Response = controller_data.get_mut_response();
-        response.set_reason_phrase(reason_phrase);
+    ) -> &mut Self {
+        let controller_data: OptionRefMutInnerControllerData = self.get_mut().await;
+        if let Some(controller_data) = controller_data {
+            let response: &mut Response = controller_data.get_mut_response();
+            response.set_reason_phrase(reason_phrase);
+        }
         self
     }
 
     #[inline]
-    pub async fn set_response_status_code(&self, status_code: ResponseStatusCode) -> &Self {
-        let mut controller_data: RwLockWriteControllerData = self.get_write_lock().await;
-        let response: &mut Response = controller_data.get_mut_response();
-        response.set_status_code(status_code);
+    pub async fn set_response_status_code(&mut self, status_code: ResponseStatusCode) -> &mut Self {
+        let controller_data: OptionRefMutInnerControllerData = self.get_mut().await;
+        if let Some(controller_data) = controller_data {
+            let response: &mut Response = controller_data.get_mut_response();
+            response.set_status_code(status_code);
+        }
         self
     }
 
     #[inline]
     pub async fn judge_enable_keep_alive(&self) -> bool {
-        let controller_data: RwLockReadControllerData = self.get_read_lock().await;
+        let controller_data: &InnerControllerData = self.get();
         let headers: &RequestHeaders = controller_data.get_request().get_headers();
         if let Some(value) = headers.iter().find_map(|(key, value)| {
             if key.eq_ignore_ascii_case(CONNECTION) {
@@ -571,7 +615,7 @@ impl ControllerData {
 
     #[inline]
     pub async fn judge_enable_websocket(&self) -> bool {
-        let controller_data: RwLockReadControllerData = self.get_read_lock().await;
+        let controller_data: &InnerControllerData = self.get();
         let headers: &RequestHeaders = controller_data.get_request().get_headers();
         headers.iter().any(|(key, value)| {
             key.eq_ignore_ascii_case(UPGRADE) && value.eq_ignore_ascii_case(WEBSOCKET)
@@ -579,7 +623,7 @@ impl ControllerData {
     }
 
     #[inline]
-    pub(crate) async fn handle_websocket(&self, is_handshake: &mut bool) -> ResponseResult {
+    pub(crate) async fn handle_websocket(&mut self, is_handshake: &mut bool) -> ResponseResult {
         if *is_handshake {
             return Ok(());
         }

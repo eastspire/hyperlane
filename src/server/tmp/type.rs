@@ -1,6 +1,6 @@
 use crate::*;
 
-pub type ArcRwLockTmp = ArcRwLock<Tmp>;
+pub type OnceCellTmp = OnceCell<Tmp>;
 
 #[derive(Clone, Lombok)]
 pub struct Tmp {

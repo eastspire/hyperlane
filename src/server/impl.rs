@@ -7,139 +7,129 @@ impl Server {
     }
 
     #[inline]
-    pub async fn host(&mut self, host: &'static str) -> &mut Self {
-        {
-            let mut cfg: RwLockWriteGuard<'_, ServerConfig<'_>> = self.get_cfg().write().await;
+    pub fn host(&mut self, host: &'static str) -> &mut Self {
+        if let Some(cfg) = self.get_mut_cfg().get_mut() {
             cfg.set_host(host);
         }
         self
     }
 
     #[inline]
-    pub async fn port(&mut self, port: usize) -> &mut Self {
-        {
-            let mut cfg: RwLockWriteGuard<'_, ServerConfig<'_>> = self.get_cfg().write().await;
+    pub fn port(&mut self, port: usize) -> &mut Self {
+        if let Some(cfg) = self.get_mut_cfg().get_mut() {
             cfg.set_port(port);
         }
         self
     }
 
     #[inline]
-    pub async fn log_dir(&mut self, log_dir: &'static str) -> &mut Self {
-        {
-            let mut cfg: RwLockWriteGuard<'_, ServerConfig<'_>> = self.get_cfg().write().await;
+    pub fn log_dir(&mut self, log_dir: &'static str) -> &mut Self {
+        if let Some(cfg) = self.get_mut_cfg().get_mut() {
             cfg.set_log_dir(log_dir);
-            let mut tmp: RwLockWriteGuard<'_, Tmp> = self.get_tmp().write().await;
-            tmp.get_mut_log().set_path(log_dir.into());
+            if let Some(tmp) = self.get_mut_tmp().get_mut() {
+                tmp.get_mut_log().set_path(log_dir.into());
+            }
         }
         self
     }
 
     #[inline]
-    pub async fn log_size(&mut self, log_size: usize) -> &mut Self {
-        {
-            let mut cfg: RwLockWriteGuard<'_, ServerConfig<'_>> = self.get_cfg().write().await;
+    pub fn log_size(&mut self, log_size: usize) -> &mut Self {
+        if let Some(cfg) = self.get_mut_cfg().get_mut() {
             cfg.set_log_size(log_size);
-            let mut tmp: RwLockWriteGuard<'_, Tmp> = self.get_tmp().write().await;
-            tmp.get_mut_log().set_file_size(log_size);
+            if let Some(tmp) = self.get_mut_tmp().get_mut() {
+                tmp.get_mut_log().set_file_size(log_size);
+            }
         }
         self
     }
 
     #[inline]
-    pub async fn websocket_buffer_size(&mut self, buffer_size: usize) -> &mut Self {
-        {
-            let buffer_size: usize = if buffer_size == 0 {
-                DEFAULT_BUFFER_SIZE
-            } else {
-                buffer_size
-            };
-            let mut cfg: RwLockWriteGuard<'_, ServerConfig<'_>> = self.get_cfg().write().await;
+    pub fn websocket_buffer_size(&mut self, buffer_size: usize) -> &mut Self {
+        let buffer_size: usize = if buffer_size == 0 {
+            DEFAULT_BUFFER_SIZE
+        } else {
+            buffer_size
+        };
+        if let Some(cfg) = self.get_mut_cfg().get_mut() {
             cfg.set_websocket_buffer_size(buffer_size);
         }
         self
     }
 
     #[inline]
-    pub async fn inner_print(&mut self, print: bool) -> &mut Self {
-        {
-            let mut cfg: RwLockWriteGuard<'_, ServerConfig<'_>> = self.get_cfg().write().await;
+    pub fn inner_print(&mut self, print: bool) -> &mut Self {
+        if let Some(cfg) = self.get_mut_cfg().get_mut() {
             cfg.set_inner_print(print);
         }
         self
     }
 
     #[inline]
-    pub async fn inner_log(&mut self, print: bool) -> &mut Self {
-        {
-            let mut cfg: RwLockWriteGuard<'_, ServerConfig<'_>> = self.get_cfg().write().await;
+    pub fn inner_log(&mut self, print: bool) -> &mut Self {
+        if let Some(cfg) = self.get_mut_cfg().get_mut() {
             cfg.set_inner_log(print);
         }
         self
     }
 
     #[inline]
-    pub async fn enable_inner_print(&mut self) -> &mut Self {
-        self.inner_print(true).await;
+    pub fn enable_inner_print(&mut self) -> &mut Self {
+        self.inner_print(true);
         self
     }
 
     #[inline]
-    pub async fn disable_inner_print(&mut self) -> &mut Self {
-        self.inner_print(false).await;
+    pub fn disable_inner_print(&mut self) -> &mut Self {
+        self.inner_print(false);
         self
     }
 
     #[inline]
-    pub async fn enable_inner_log(&mut self) -> &mut Self {
-        self.inner_log(true).await;
+    pub fn enable_inner_log(&mut self) -> &mut Self {
+        self.inner_log(true);
         self
     }
 
     #[inline]
-    pub async fn disable_inner_log(&mut self) -> &mut Self {
-        self.inner_log(false).await;
+    pub fn disable_inner_log(&mut self) -> &mut Self {
+        self.inner_log(false);
         self
     }
 
     #[inline]
-    pub async fn log_interval_millis(&mut self, interval_millis: usize) -> &mut Self {
-        {
-            let mut cfg: RwLockWriteGuard<'_, ServerConfig<'_>> = self.get_cfg().write().await;
+    pub fn log_interval_millis(&mut self, interval_millis: usize) -> &mut Self {
+        if let Some(cfg) = self.get_mut_cfg().get_mut() {
             cfg.set_interval_millis(interval_millis);
-            let mut tmp: RwLockWriteGuard<'_, Tmp> = self.get_tmp().write().await;
-            tmp.get_mut_log().set_interval_millis(interval_millis);
+            if let Some(tmp) = self.get_mut_tmp().get_mut() {
+                tmp.get_mut_log().set_interval_millis(interval_millis);
+            }
         }
         self
     }
 
     #[inline]
-    pub async fn route<F, Fut>(&mut self, route: &'static str, func: F) -> &mut Self
+    pub fn route<F, Fut>(&mut self, route: &'static str, mut func: F) -> &mut Self
     where
         F: FuncWithoutPin<Fut>,
         Fut: Future<Output = ()> + Send + 'static,
     {
-        {
-            let mut mut_route_func: RwLockWriteGuard<'_, HashMap<&str, Box<dyn Func + Send>>> =
-                self.get_route_func().write().await;
-            mut_route_func.insert(
-                route,
-                Box::new(move |controller_data| Box::pin(func(controller_data))),
-            );
-        }
+        let mut_route_func: &ArcDashMapRouteFuncBox = self.get_route_func();
+        mut_route_func.insert(
+            route,
+            Box::new(move |controller_data: &mut ControllerData| Box::pin(func(controller_data))),
+        );
         self
     }
 
     #[inline]
-    pub async fn request_middleware<F, Fut>(&mut self, func: F) -> &mut Self
+    pub fn request_middleware<F, Fut>(&mut self, mut func: F) -> &mut Self
     where
         F: FuncWithoutPin<Fut>,
         Fut: Future<Output = ()> + Send + 'static,
     {
-        {
-            let mut mut_async_middleware: RwLockWriteGuard<'_, Vec<Box<dyn Func + Send>>> =
-                self.get_request_middleware().write().await;
-            mut_async_middleware.push(Box::new(move |controller_data| {
+        if let Some(mut_async_middleware) = self.get_mut_request_middleware().get_mut() {
+            mut_async_middleware.push(Box::new(move |controller_data: &mut ControllerData| {
                 Box::pin(func(controller_data))
             }));
         }
@@ -147,15 +137,13 @@ impl Server {
     }
 
     #[inline]
-    pub async fn response_middleware<F, Fut>(&mut self, func: F) -> &mut Self
+    pub fn response_middleware<F, Fut>(&mut self, mut func: F) -> &mut Self
     where
         F: FuncWithoutPin<Fut>,
         Fut: Future<Output = ()> + Send + 'static,
     {
-        {
-            let mut mut_async_middleware: RwLockWriteGuard<'_, Vec<Box<dyn Func + Send>>> =
-                self.get_response_middleware().write().await;
-            mut_async_middleware.push(Box::new(move |controller_data| {
+        if let Some(mut_async_middleware) = self.get_mut_response_middleware().get_mut() {
+            mut_async_middleware.push(Box::new(move |controller_data: &mut ControllerData| {
                 Box::pin(func(controller_data))
             }));
         }
@@ -178,31 +166,34 @@ impl Server {
     #[inline]
     pub async fn listen(&mut self) -> &mut Self {
         {
-            self.init().await;
-            let cfg: RwLockReadGuard<'_, ServerConfig<'_>> = self.get_cfg().read().await;
+            self.init();
+            let cfg: ServerConfig = self.get_mut_cfg().take().unwrap_or_default();
             let host: &str = *cfg.get_host();
             let port: usize = *cfg.get_port();
             let websocket_buffer_size: usize = *cfg.get_websocket_buffer_size();
             let addr: String = format!("{}{}{}", host, COLON_SPACE_SYMBOL, port);
+            print_success!(-2);
             let tcp_listener: TcpListener = TcpListener::bind(&addr)
                 .await
                 .map_err(|err| ServerError::TcpBindError(err.to_string()))
                 .unwrap();
+            print_success!(-1);
             while let Ok((stream, _socket_addr)) = tcp_listener.accept().await {
-                let tmp_arc_lock: ArcRwLockTmp = self.get_tmp().clone();
+                let tmp: Tmp = self.get_mut_tmp().take().unwrap_or_default();
                 let stream_arc: ArcRwLockStream = ArcRwLockStream::from_stream(stream);
-                let async_request_middleware_arc_lock: ArcRwLockMiddlewareFuncBox =
-                    self.get_request_middleware().clone();
-                let async_response_middleware_arc_lock: ArcRwLockMiddlewareFuncBox =
-                    self.get_response_middleware().clone();
-                let route_func_arc_lock: ArcRwLockHashMapRouteFuncBox =
-                    self.get_route_func().clone();
+                let mut request_middleware_opt: OptionVecBoxFunc =
+                    self.get_mut_request_middleware().take();
+                let mut response_middleware_opt: OptionVecBoxFunc =
+                    self.get_mut_response_middleware().take();
+                let route_func: ArcDashMapRouteFuncBox = self.get_route_func().clone();
+                print_success!(0);
                 let handle_request = move || async move {
-                    let log: Log = tmp_arc_lock.read().await.get_log().clone();
+                    let log: Log = tmp.get_log().clone();
                     let mut enable_websocket_opt: Option<bool> = None;
                     let mut websocket_handshake_finish: bool = false;
                     let mut history_request: Request = Request::default();
                     loop {
+                        print_success!(1);
                         let mut inner_controller_data: InnerControllerData =
                             InnerControllerData::default();
                         let request_obj_result: Result<Request, ServerError> =
@@ -214,7 +205,9 @@ impl Server {
                             .await
                             .map_err(|err| ServerError::InvalidHttpRequest(err));
                         let init_enable_websocket_opt: bool = enable_websocket_opt.is_some();
+                        print_success!(2);
                         if request_obj_result.is_err() && !init_enable_websocket_opt {
+                            print_error!(3);
                             let _ = inner_controller_data
                                 .get_mut_response()
                                 .close(&stream_arc)
@@ -233,7 +226,7 @@ impl Server {
                             .set_stream(Some(stream_arc.clone()))
                             .set_request(request_obj)
                             .set_log(log.clone());
-                        let controller_data: ControllerData =
+                        let mut controller_data: ControllerData =
                             ControllerData::from_controller_data(inner_controller_data);
                         if !init_enable_websocket_opt {
                             enable_websocket_opt =
@@ -245,26 +238,26 @@ impl Server {
                                 .handle_websocket(&mut websocket_handshake_finish)
                                 .await;
                             if handle_res.is_err() {
+                                print_error!(4);
                                 let _ = controller_data.close().await;
                                 return;
                             }
                         }
-                        for request_middleware in
-                            async_request_middleware_arc_lock.read().await.iter()
-                        {
-                            request_middleware(controller_data.clone()).await;
+                        if let Some(ref mut request_middleware_opt) = request_middleware_opt {
+                            for request_middleware in request_middleware_opt.iter_mut() {
+                                request_middleware(&mut controller_data).await;
+                            }
                         }
-                        if let Some(async_func) =
-                            route_func_arc_lock.read().await.get(route.as_str())
-                        {
-                            async_func(controller_data.clone()).await;
+                        if let Some(ref mut async_func) = route_func.get_mut(route.as_str()) {
+                            async_func(&mut controller_data).await;
                         }
-                        for response_middleware in
-                            async_response_middleware_arc_lock.read().await.iter()
-                        {
-                            response_middleware(controller_data.clone()).await;
+                        if let Some(ref mut response_middleware_opt) = response_middleware_opt {
+                            for response_middleware in response_middleware_opt.iter_mut() {
+                                response_middleware(&mut controller_data).await;
+                            }
                         }
                         if controller_data.judge_unenable_keep_alive().await && !enable_websocket {
+                            print_error!(5);
                             let _ = controller_data.close().await;
                             return;
                         }
@@ -277,15 +270,15 @@ impl Server {
     }
 
     #[inline]
-    async fn init_log(&self) {
-        let tmp: RwLockReadGuard<'_, Tmp> = self.get_tmp().read().await;
+    fn init_log(&mut self) {
+        let tmp: Tmp = self.get_mut_tmp().take().unwrap_or_default();
         log_run(tmp.get_log());
     }
 
     #[inline]
-    async fn init_panic_hook(&self) {
-        let tmp: Tmp = self.get_tmp().read().await.clone();
-        let cfg: RwLockReadGuard<'_, ServerConfig<'_>> = self.get_cfg().read().await;
+    fn init_panic_hook(&mut self) {
+        let tmp: Tmp = self.get_mut_tmp().take().unwrap_or_default();
+        let cfg: ServerConfig = self.get_mut_cfg().take().unwrap_or_default();
         let inner_print: bool = *cfg.get_inner_print();
         let inner_log: bool = *cfg.get_inner_log();
         set_hook(Box::new(move |err| {
@@ -300,8 +293,8 @@ impl Server {
     }
 
     #[inline]
-    async fn init(&self) {
-        self.init_panic_hook().await;
-        self.init_log().await;
+    fn init(&mut self) {
+        self.init_panic_hook();
+        self.init_log();
     }
 }

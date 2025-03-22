@@ -4,7 +4,7 @@ use crate::*;
 async fn test_server_basic_usage() {
     use crate::*;
 
-    async fn request_middleware(controller_data: ControllerData) {
+    async fn request_middleware(controller_data: &mut ControllerData) {
         let socket_addr: String = controller_data.get_socket_addr_or_default_string().await;
         controller_data
             .set_response_header(SERVER, HYPERLANE)
@@ -19,7 +19,7 @@ async fn test_server_basic_usage() {
             .await;
     }
 
-    async fn response_middleware(controller_data: ControllerData) {
+    async fn response_middleware(controller_data: &mut ControllerData) {
         let _ = controller_data.send().await;
         let request: String = controller_data.get_request_string().await;
         let response: String = controller_data.get_response_string().await;
@@ -30,7 +30,7 @@ async fn test_server_basic_usage() {
             .await;
     }
 
-    async fn root_route(controller_data: ControllerData) {
+    async fn root_route(controller_data: &mut ControllerData) {
         controller_data
             .set_response_status_code(200)
             .await
@@ -38,39 +38,37 @@ async fn test_server_basic_usage() {
             .await;
     }
 
-    async fn websocket_route(controller_data: ControllerData) {
+    async fn websocket_route(controller_data: &mut ControllerData) {
         let request_body: Vec<u8> = controller_data.get_request_body().await;
         let _ = controller_data.send_response_body(request_body).await;
     }
 
     async fn run_server() {
         let mut server: Server = Server::new();
-        server.host("0.0.0.0").await;
-        server.port(60000).await;
-        server.log_dir("./logs").await;
-        server.enable_inner_log().await;
-        server.enable_inner_print().await;
-        server.log_size(100_024_000).await;
-        server.log_interval_millis(1000).await;
-        server.websocket_buffer_size(4096).await;
-        server.request_middleware(request_middleware).await;
-        server.response_middleware(response_middleware).await;
-        server.route("/", root_route).await;
-        server.route("/websocket", websocket_route).await;
+        server.host("0.0.0.0");
+        server.port(10000);
+        server.log_dir("./logs");
+        server.enable_inner_log();
+        server.enable_inner_print();
+        server.log_size(100_024_000);
+        server.log_interval_millis(1000);
+        server.websocket_buffer_size(4096);
+        server.response_middleware(response_middleware);
+        server.route("/", root_route);
+        server.route("/websocket", websocket_route);
         let test_string: String = "Hello hyperlane".to_owned();
-        server
-            .route(
-                "/test/panic",
-                async_func!(test_string, |data| {
-                    println_success!(test_string);
-                    println_success!(format!("Using external variables {:?}", data));
-                    panic!("Test panic");
-                }),
-            )
-            .await;
+        server.route(
+            "/test/panic",
+            async_func!(test_string, |data| {
+                println_success!(test_string);
+                println_success!(format!("Using external variables {:?}", data));
+                panic!("Test panic");
+            }),
+        );
         server.listen().await;
     }
 
+    run_server().await;
     recoverable_spawn::r#async::recoverable_spawn(run_server);
     std::thread::sleep(std::time::Duration::from_secs(10));
 }

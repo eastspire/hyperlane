@@ -1,7 +1,11 @@
 use crate::*;
 
-pub type RwLockWriteControllerData<'a> = RwLockWriteGuard<'a, InnerControllerData>;
-pub type RwLockReadControllerData<'a> = RwLockReadGuard<'a, InnerControllerData>;
+pub type RefMutInnerControllerData<'a> = &'a mut InnerControllerData;
+pub type RefInnerControllerData<'a> = &'a InnerControllerData;
+
+pub type OptionRefMutInnerControllerData<'a> = Option<RefMutInnerControllerData<'a>>;
+pub type OptionRefInnerControllerData<'a> = Option<RefInnerControllerData<'a>>;
+pub type OptionInnerControllerData = Option<InnerControllerData>;
 
 #[derive(Clone, Debug, Lombok, Default)]
 pub struct InnerControllerData {
@@ -12,4 +16,4 @@ pub struct InnerControllerData {
 }
 
 #[derive(Clone, Debug)]
-pub struct ControllerData(pub(super) ArcRwLock<InnerControllerData>);
+pub struct ControllerData(pub(super) OnceCell<InnerControllerData>);

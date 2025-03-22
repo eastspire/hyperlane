@@ -1,5 +1,7 @@
 use crate::*;
 
+pub type OnceCellServerConfig = OnceCell<ServerConfig<'static>>;
+
 #[derive(Clone, Debug, Lombok)]
 pub struct ServerConfig<'a> {
     pub(super) host: &'a str,
