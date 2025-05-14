@@ -1,20 +1,17 @@
 [package]
-name = "hyperlane_server"
+name = "hyperlane-server"
 version = "0.1.0"
 edition = "2024"
 
-[lib]
-path = "lib.rs"
-
 [dependencies]
-hyperlane_context.workspace = true
-hyperlane_route.workspace = true
-hyperlane_config.workspace = true
-hyperlane_middleware.workspace = true
-hyperlane_tmp.workspace = true
+hyperlane-context.workspace = true
+hyperlane-route.workspace = true
+hyperlane-config.workspace = true
+hyperlane-middleware.workspace = true
+hyperlane-tmp.workspace = true
 hyperlane-log.workspace = true
-hyperlane_handler.workspace = true
-hyperlane_utils.workspace = true
+hyperlane-handler.workspace = true
+hyperlane-utils.workspace = true
 color-output.workspace = true
 http-type.workspace = true
 

@@ -1,12 +1,9 @@
 [package]
-name = "hyperlane_context"
+name = "hyperlane-context"
 version = "0.1.0"
 edition = "2024"
-
-[lib]
-path = "lib.rs"
 
 [dependencies]
 http-type.workspace = true
 hyperlane-log.workspace = true
-hyperlane_route.workspace = true
+hyperlane-route.workspace = true

@@ -1,11 +1,8 @@
 [package]
-name = "hyperlane_route"
+name = "hyperlane-route"
 version = "0.1.0"
 edition = "2024"
 
-[lib]
-path = "lib.rs"
-
 [dependencies]
 http-type.workspace = true
-hyperlane_handler.workspace = true
+hyperlane-handler.workspace = true

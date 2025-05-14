@@ -1,11 +1,8 @@
 [package]
-name = "hyperlane_utils"
+name = "hyperlane-utils"
 version = "0.1.0"
 edition = "2024"
 
-[lib]
-path = "lib.rs"
-
 [dependencies]
-hyperlane_tmp.workspace = true
+hyperlane-tmp.workspace = true
 hyperlane-log.workspace = true
