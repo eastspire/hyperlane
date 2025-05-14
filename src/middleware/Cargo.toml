@@ -1,8 +1,8 @@
 [package]
-name = "hyperlane-middleware"
+name = "hyperlane_middleware"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
 http-type.workspace = true
-hyperlane-handler.workspace = true
+hyperlane_handler.workspace = true

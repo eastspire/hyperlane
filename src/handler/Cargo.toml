@@ -1,5 +1,5 @@
 [package]
-name = "hyperlane-handler"
+name = "hyperlane_handler"
 version = "0.1.0"
 edition = "2024"
 

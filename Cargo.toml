@@ -35,14 +35,14 @@ recoverable-spawn = "3.7.2"
 recoverable-thread-pool = "2.3.1"
 http-type = "3.69.0"
 server-manager = "3.2.1"
-hyperlane-config = { path = "./src/config" }
-hyperlane-context = { path = "./src/context" }
-hyperlane-handler = { path = "./src/handler" }
-hyperlane-middleware = { path = "./src/middleware" }
-hyperlane-route = { path = "./src/route" }
-hyperlane-server = { path = "./src/server" }
-hyperlane-tmp = { path = "./src/tmp" }
-hyperlane-utils = { path = "./src/utils" }
+hyperlane_config = { path = "./src/config" }
+hyperlane_context = { path = "./src/context" }
+hyperlane_handler = { path = "./src/handler" }
+hyperlane_middleware = { path = "./src/middleware" }
+hyperlane_route = { path = "./src/route" }
+hyperlane_server = { path = "./src/server" }
+hyperlane_tmp = { path = "./src/tmp" }
+hyperlane_utils = { path = "./src/utils" }
 
 [dependencies]
 future-fn.workspace = true
@@ -54,14 +54,14 @@ recoverable-spawn.workspace = true
 recoverable-thread-pool.workspace = true
 http-type.workspace = true
 server-manager.workspace = true
-hyperlane-config.workspace = true
-hyperlane-context.workspace = true
-hyperlane-handler.workspace = true
-hyperlane-middleware.workspace = true
-hyperlane-route.workspace = true
-hyperlane-server.workspace = true
-hyperlane-tmp.workspace = true
-hyperlane-utils.workspace = true
+hyperlane_config.workspace = true
+hyperlane_context.workspace = true
+hyperlane_handler.workspace = true
+hyperlane_middleware.workspace = true
+hyperlane_route.workspace = true
+hyperlane_server.workspace = true
+hyperlane_tmp.workspace = true
+hyperlane_utils.workspace = true
 
 [profile.dev]
 incremental = false
