@@ -1,3 +1,3 @@
-use crate::*;
+use super::*;
 
-pub(crate) type ArcRwLockServerConfig<'a> = ArcRwLock<ServerConfig<'a>>;
+pub type ArcRwLockServerConfig<'a> = ArcRwLock<ServerConfig<'a>>;

@@ -1,5 +1,5 @@
 #[derive(Debug, Clone)]
-pub(crate) enum RouteSegment {
+pub enum RouteSegment {
     Static(String),
     Dynamic(String),
 }

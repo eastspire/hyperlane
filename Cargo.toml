@@ -17,7 +17,12 @@ exclude = [
     "**/*.log"
 ]
 
-[dependencies]
+[workspace]
+members = [
+    "src/*"
+]
+
+[workspace.dependencies]
 future-fn = "0.1.0"
 clonelicious = "1.1.1"
 color-output = "6.6.1"
@@ -27,6 +32,33 @@ recoverable-spawn = "3.7.2"
 recoverable-thread-pool = "2.3.1"
 http-type = "3.69.0"
 server-manager = "3.2.1"
+config = { path = "./src/config" }
+context = { path = "./src/context" }
+handler = { path = "./src/handler" }
+middleware = { path = "./src/middleware" }
+route = { path = "./src/route" }
+server = { path = "./src/server" }
+tmp = { path = "./src/tmp" }
+utils = { path = "./src/utils" }
+
+[dependencies]
+future-fn.workspace = true
+clonelicious.workspace = true
+color-output.workspace = true
+file-operation.workspace = true
+hyperlane-log.workspace = true
+recoverable-spawn.workspace = true
+recoverable-thread-pool.workspace = true
+http-type.workspace = true
+server-manager.workspace = true
+config.workspace = true
+context.workspace = true
+handler.workspace = true
+middleware.workspace = true
+route.workspace = true
+server.workspace = true
+tmp.workspace = true
+utils.workspace = true
 
 [profile.dev]
 incremental = false

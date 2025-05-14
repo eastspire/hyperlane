@@ -1,7 +1,7 @@
-use crate::*;
+use super::*;
 
 #[derive(Clone, Debug, Lombok)]
-pub(crate) struct ServerConfig<'a> {
+pub struct ServerConfig<'a> {
     pub(super) host: &'a str,
     pub(super) port: usize,
     pub(super) log_dir: &'a str,

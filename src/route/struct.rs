@@ -1,7 +1,7 @@
 use crate::*;
 
 #[derive(Debug, Clone)]
-pub(crate) struct RoutePattern(pub(super) VecRouteSegment);
+pub struct RoutePattern(pub(super) VecRouteSegment);
 
 #[derive(Clone)]
-pub(crate) struct RouteMatcher(pub(super) VecRoutePatternArcFunc);
+pub struct RouteMatcher(pub(super) VecRoutePatternArcFunc);

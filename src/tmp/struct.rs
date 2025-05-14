@@ -1,6 +1,6 @@
-use crate::*;
+use super::*;
 
 #[derive(Clone, Lombok, Default)]
-pub(crate) struct Tmp {
+pub struct Tmp {
     pub(super) log: Log,
 }

@@ -1,15 +1,11 @@
-use crate::*;
+use super::*;
 
 impl Context {
-    pub(crate) fn from_inner_context(ctx: InnerContext) -> Self {
+    pub fn from_inner_context(ctx: InnerContext) -> Self {
         Self(arc_rwlock(ctx))
     }
 
-    pub(crate) fn from_stream_request_log(
-        stream: &ArcRwLockStream,
-        request: &Request,
-        log: &Log,
-    ) -> Self {
+    pub fn from_stream_request_log(stream: &ArcRwLockStream, request: &Request, log: &Log) -> Self {
         let mut inner_ctx: InnerContext = InnerContext::default();
         inner_ctx
             .set_stream(Some(stream.clone()))

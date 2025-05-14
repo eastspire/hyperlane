@@ -1,4 +1,4 @@
-use crate::*;
+use super::*;
 
 impl PartialEq for RouteSegment {
     fn eq(&self, other: &Self) -> bool {
