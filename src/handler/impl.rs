@@ -1,10 +1,16 @@
 use crate::*;
 
-impl<F> Func for F where F: Fn(Context) -> Pin<Box<dyn Future<Output = ()> + Send>> + Send + Sync {}
-
-impl<F, Fut> FuncWithoutPin<Fut> for F
+impl<F, T> Func<T> for F
 where
-    F: Fn(Context) -> Fut + Send + Sync + 'static,
+    T: Send + Sync,
+    F: Fn(T) -> Pin<Box<dyn Future<Output = ()> + Send>> + Send + Sync,
+{
+}
+
+impl<F, Fut, T> FuncWithoutPin<Fut, T> for F
+where
+    T: Send + Sync,
+    F: Fn(T) -> Fut + Send + Sync + 'static,
     Fut: Future<Output = ()> + Send,
 {
 }

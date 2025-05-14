@@ -9,3 +9,11 @@ path = "lib.rs"
 [dependencies]
 http-type.workspace = true
 context.workspace = true
+route.workspace = true
+config.workspace = true
+middleware.workspace = true
+tmp.workspace = true
+hyperlane-log.workspace = true
+handler.workspace = true
+color-output.workspace = true
+utils.workspace = true

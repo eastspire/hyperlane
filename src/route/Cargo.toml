@@ -8,3 +8,4 @@ path = "lib.rs"
 
 [dependencies]
 http-type.workspace = true
+handler.workspace = true

@@ -168,7 +168,7 @@ impl Server {
     pub async fn route<R, F, Fut>(&self, route: R, func: F) -> &Self
     where
         R: ToString,
-        F: FuncWithoutPin<Fut>,
+        F: FuncWithoutPin<Fut, Context>,
         Fut: Future<Output = ()> + Send + 'static,
     {
         let route_str: String = route.to_string();
@@ -188,7 +188,7 @@ impl Server {
 
     pub async fn request_middleware<F, Fut>(&self, func: F) -> &Self
     where
-        F: FuncWithoutPin<Fut>,
+        F: FuncWithoutPin<Fut, Context>,
         Fut: Future<Output = ()> + Send + 'static,
     {
         self.get_request_middleware()
@@ -200,7 +200,7 @@ impl Server {
 
     pub async fn response_middleware<F, Fut>(&self, func: F) -> &Self
     where
-        F: FuncWithoutPin<Fut>,
+        F: FuncWithoutPin<Fut, Context>,
         Fut: Future<Output = ()> + Send + 'static,
     {
         self.get_response_middleware()
@@ -253,12 +253,13 @@ impl Server {
             }
             let log_clone: Log = log.clone();
             let stream: ArcRwLockStream = ArcRwLockStream::from_stream(stream);
-            let request_middleware_arc_lock: ArcRwLockMiddlewareFuncBox =
+            let request_middleware_arc_lock: ArcRwLockMiddlewareFuncBox<Context> =
                 self.get_request_middleware().clone();
-            let response_middleware_arc_lock: ArcRwLockMiddlewareFuncBox =
+            let response_middleware_arc_lock: ArcRwLockMiddlewareFuncBox<Context> =
                 self.get_response_middleware().clone();
-            let route_func_arc_lock: ArcRwLockHashMapRouteFuncBox = self.get_route().clone();
-            let route_matcher_arc_lock: ArcRwLockRouteMatcher = self.route_matcher.clone();
+            let route_func_arc_lock: ArcRwLockHashMapRouteFuncBox<Context> =
+                self.get_route().clone();
+            let route_matcher_arc_lock: ArcRwLockRouteMatcher<Context> = self.route_matcher.clone();
             tokio::spawn(async move {
                 let request_result: RequestReaderHandleResult =
                     Request::http_request_from_stream(&stream, http_line_buffer_size).await;
@@ -378,10 +379,10 @@ impl<'a> RequestHandlerImmutableParams<'a> {
         stream: &'a ArcRwLockStream,
         log: &'a Log,
         buffer_size: usize,
-        request_middleware: &'a ArcRwLockMiddlewareFuncBox,
-        response_middleware: &'a ArcRwLockMiddlewareFuncBox,
-        route_func: &'a ArcRwLockHashMapRouteFuncBox,
-        route_matcher: &'a ArcRwLock<RouteMatcher>,
+        request_middleware: &'a ArcRwLockMiddlewareFuncBox<Context>,
+        response_middleware: &'a ArcRwLockMiddlewareFuncBox<Context>,
+        route_func: &'a ArcRwLockHashMapRouteFuncBox<Context>,
+        route_matcher: &'a ArcRwLock<RouteMatcher<Context>>,
     ) -> Self {
         Self {
             stream,

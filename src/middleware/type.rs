@@ -1,3 +1,3 @@
 use super::*;
 
-pub type ArcRwLockMiddlewareFuncBox = ArcRwLock<VecArcFunc>;
+pub type ArcRwLockMiddlewareFuncBox<T> = ArcRwLock<VecArcFunc<T>>;

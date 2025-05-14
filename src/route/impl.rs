@@ -74,12 +74,12 @@ impl RoutePattern {
     }
 }
 
-impl RouteMatcher {
+impl<T> RouteMatcher<T> {
     pub fn new() -> Self {
         Self(Vec::new())
     }
 
-    pub fn add(&mut self, pattern: &str, handler: ArcFunc) -> ResultAddRoute {
+    pub fn add(&mut self, pattern: &str, handler: ArcFunc<T>) -> ResultAddRoute {
         let route_pattern: RoutePattern = RoutePattern::new(pattern);
         let has_same_pattern: bool = self
             .0
@@ -92,7 +92,7 @@ impl RouteMatcher {
         return Ok(());
     }
 
-    pub fn match_route(&self, path: &str) -> OptionTupleArcFuncRouteParams {
+    pub fn match_route(&self, path: &str) -> OptionTupleArcFuncRouteParams<T> {
         for (pattern, handler) in &self.0 {
             if let Some(params) = pattern.match_path(path) {
                 return Some((handler.clone(), params));

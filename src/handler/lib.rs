@@ -3,4 +3,6 @@ pub(crate) mod r#trait;
 pub(crate) mod r#type;
 
 pub use r#trait::*;
-pub(crate) use r#type::*;
+pub use r#type::*;
+
+pub(crate) use std::{pin::Pin, sync::Arc};

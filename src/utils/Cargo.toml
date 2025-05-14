@@ -8,4 +8,4 @@ path = "lib.rs"
 
 [dependencies]
 tmp.workspace = true
-hyperlane-log = true
+hyperlane-log.workspace = true

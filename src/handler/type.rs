@@ -1,5 +1,5 @@
 use crate::*;
 
-pub(crate) type ArcFunc = Arc<dyn Func>;
-pub(crate) type VecArcFunc = Vec<ArcFunc>;
-pub(crate) type PinBoxFutureSend = Pin<Box<(dyn Future<Output = ()> + Send + 'static)>>;
+pub type ArcFunc<T> = Arc<dyn Func<T>>;
+pub type VecArcFunc<T> = Vec<ArcFunc<T>>;
+pub type PinBoxFutureSend = Pin<Box<(dyn Future<Output = ()> + Send + 'static)>>;

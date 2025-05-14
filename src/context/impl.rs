@@ -116,7 +116,7 @@ impl Context {
             .cloned()
     }
 
-    pub(crate) async fn set_route_params(&self, params: RouteParams) -> &Self {
+    pub async fn set_route_params(&self, params: RouteParams) -> &Self {
         self.get_write_lock()
             .await
             .set_route_params(arc_rwlock(params));
@@ -606,7 +606,7 @@ impl Context {
         !self.is_enable_websocket().await
     }
 
-    pub(crate) async fn handle_websocket(&self) -> ResponseResult {
+    pub async fn handle_websocket(&self) -> ResponseResult {
         let key_opt: OptionString = self.get_request_header(SEC_WEBSOCKET_KEY).await;
         if let Some(key) = key_opt {
             let accept_key: String = WebSocketFrame::generate_accept_key(&key);

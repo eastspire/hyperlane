@@ -9,3 +9,4 @@ path = "lib.rs"
 [dependencies]
 http-type.workspace = true
 hyperlane-log.workspace = true
+route.workspace = true
