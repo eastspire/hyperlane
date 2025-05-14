@@ -1,2 +1,2 @@
 #!/bin/bash
-cargo test --release -- --nocapture
+cargo test --release --workspace  -- --nocapture

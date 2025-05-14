@@ -9,6 +9,7 @@ pub use error::*;
 pub use r#struct::*;
 pub use r#type::*;
 
-pub(crate) use handler::*;
+pub(crate) use hyperlane_handler::*;
+
 pub(crate) use http_type::*;
 pub(crate) use std::{collections::HashMap, hash::BuildHasherDefault};

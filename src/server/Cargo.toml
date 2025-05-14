@@ -1,5 +1,5 @@
 [package]
-name = "server"
+name = "hyperlane_server"
 version = "0.1.0"
 edition = "2024"
 
@@ -7,13 +7,16 @@ edition = "2024"
 path = "lib.rs"
 
 [dependencies]
-http-type.workspace = true
-context.workspace = true
-route.workspace = true
-config.workspace = true
-middleware.workspace = true
-tmp.workspace = true
+hyperlane_context.workspace = true
+hyperlane_route.workspace = true
+hyperlane_config.workspace = true
+hyperlane_middleware.workspace = true
+hyperlane_tmp.workspace = true
 hyperlane-log.workspace = true
-handler.workspace = true
+hyperlane_handler.workspace = true
+hyperlane_utils.workspace = true
 color-output.workspace = true
-utils.workspace = true
+http-type.workspace = true
+
+[dev-dependencies]
+future-fn.workspace = true

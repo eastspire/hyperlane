@@ -5,9 +5,10 @@ pub(crate) mod r#type;
 pub use r#struct::*;
 pub use r#type::*;
 
+pub(crate) use hyperlane_route::*;
+
 pub(crate) use http_type::*;
 pub(crate) use hyperlane_log::*;
-pub(crate) use route::*;
 pub(crate) use serde::de::DeserializeOwned;
 pub(crate) use std::{collections::HashMap, net::SocketAddr, sync::Arc};
 pub(crate) use tokio::sync::{RwLockReadGuard, RwLockWriteGuard};

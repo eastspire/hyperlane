@@ -1,5 +1,5 @@
 [package]
-name = "tmp"
+name = "hyperlane_tmp"
 version = "0.1.0"
 edition = "2024"
 
